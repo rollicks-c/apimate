@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 )
 
@@ -26,7 +25,6 @@ func WithJSONReceiver(receiver interface{}) client.RequestOption {
 			}
 
 			if err := json.Unmarshal(payload, receiver); err != nil {
-				os.WriteFile("/tmp/error.json", payload, 0644)
 				return err
 			}
 
@@ -42,6 +40,13 @@ func WithRawReceiver(receiver *[]byte) client.RequestOption {
 			*receiver = payload
 			return nil
 		}
+		return nil
+	}
+}
+
+func WithCustomReceiver(receiver client.Receiver) client.RequestOption {
+	return func(ctx *client.RequestContext) error {
+		ctx.Receiver = receiver
 		return nil
 	}
 }

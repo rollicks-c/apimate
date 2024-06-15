@@ -185,6 +185,9 @@ func (r RequestRunner) pagedConsume(rq requester) (*http.Response, []byte, error
 
 		// read response
 		pageRes, err := rq(r.ctx.Req)
+		if err != nil {
+			return nil, nil, err
+		}
 		body, err := io.ReadAll(pageRes.Body)
 		if err != nil {
 			return nil, nil, err
