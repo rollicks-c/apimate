@@ -23,8 +23,12 @@ func NewRunner(ctx RequestContext) *RequestRunner {
 
 func (r RequestRunner) DoRequest() error {
 
-	// auth
-	r.ctx.Req.Header.Set("Authorization", "Bearer "+r.ctx.ApiToken)
+	// apply defaults
+	for _, opt := range r.ctx.DefaultOptions {
+		if err := opt(&r.ctx); err != nil {
+			return err
+		}
+	}
 
 	// prepare
 	client := &http.Client{

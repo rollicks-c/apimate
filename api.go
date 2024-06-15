@@ -62,6 +62,20 @@ func WithDefaultRequest() client.RequestOption {
 	}
 }
 
+func WithBearerAuth() client.RequestOption {
+	return func(ctx *client.RequestContext) error {
+		ctx.Req.Header.Set("Authorization", "Bearer "+ctx.ApiToken)
+		return nil
+	}
+}
+
+func WithBasicAuth(user, pass string) client.RequestOption {
+	return func(ctx *client.RequestContext) error {
+		ctx.Req.SetBasicAuth(user, pass)
+		return nil
+	}
+}
+
 func WithNullReceiver() client.RequestOption {
 	return func(ctx *client.RequestContext) error {
 		ctx.Receiver = func(bytes []byte) error {
@@ -158,14 +172,21 @@ func WithAcceptedErrors(code ...int) client.RequestOption {
 }
 
 type Client struct {
-	apiUrl   string
-	apiToken string
+	apiUrl         string
+	apiToken       string
+	defaultOptions []client.RequestOption
 }
 
-func New(apiUrl, apiToken string) *Client {
+func New(apiUrl, apiToken string, defaults ...client.RequestOption) *Client {
+
+	if len(defaults) == 0 {
+		defaults = append(defaults, WithBearerAuth())
+	}
+
 	return &Client{
-		apiUrl:   apiUrl,
-		apiToken: apiToken,
+		apiUrl:         apiUrl,
+		apiToken:       apiToken,
+		defaultOptions: defaults,
 	}
 }
 
@@ -180,6 +201,7 @@ func (c Client) Request(method, ep string, options ...client.RequestOption) erro
 		AutoThrottle:    true,
 		AutoRetries:     3,
 		ConsumeAllPages: false,
+		DefaultOptions:  c.defaultOptions,
 	}
 
 	// apply defaults options

@@ -6,6 +6,8 @@ type RequestContext struct {
 	ApiUrl   string
 	ApiToken string
 
+	DefaultOptions []RequestOption
+
 	Method   string
 	Endpoint string
 
