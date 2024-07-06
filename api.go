@@ -175,9 +175,25 @@ func WithAllPages() client.RequestOption {
 	}
 }
 
-func WithAcceptedErrors(code ...int) client.RequestOption {
+func WithAcceptedErrors(codes ...int) client.RequestOption {
+
+	checker := func(resp *http.Response) bool {
+		for _, c := range codes {
+			if c == resp.StatusCode {
+				return true
+			}
+		}
+		return false
+	}
 	return func(ctx *client.RequestContext) error {
-		ctx.AcceptedErrorCodes = code
+		ctx.StatusChecker = checker
+		return nil
+	}
+}
+
+func WithStatusChecker(checker client.StatusChecker) client.RequestOption {
+	return func(ctx *client.RequestContext) error {
+		ctx.StatusChecker = checker
 		return nil
 	}
 }
@@ -212,6 +228,7 @@ func (c Client) Request(method, ep string, options ...client.RequestOption) erro
 	defaults := []client.RequestOption{
 		WithDefaultRequest(),
 		WithNullReceiver(),
+		WithAcceptedErrors(),
 	}
 
 	// apply custom options

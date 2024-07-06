@@ -12,7 +12,7 @@ type responseProcessor struct {
 func (rp responseProcessor) process(resp *http.Response, data []byte) error {
 
 	// check status
-	if rp.isAcceptedError(resp.StatusCode) {
+	if rp.ctx.StatusChecker(resp) {
 		return nil
 	}
 	if rp.isErrorCode(resp.StatusCode) {
@@ -29,15 +29,6 @@ func (rp responseProcessor) process(resp *http.Response, data []byte) error {
 	}
 
 	return nil
-}
-
-func (rp responseProcessor) isAcceptedError(code int) bool {
-	for _, c := range rp.ctx.AcceptedErrorCodes {
-		if c == code {
-			return true
-		}
-	}
-	return false
 }
 
 func (rp responseProcessor) isErrorCode(code int) bool {

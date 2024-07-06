@@ -16,9 +16,12 @@ type RequestContext struct {
 	AutoRetries        int
 	ConsumeAllPages    bool
 	AcceptedErrorCodes []int
+	StatusChecker      StatusChecker
 	Receiver           Receiver
 }
 
 type RequestOption func(*RequestContext) error
 
 type Receiver func([]byte) error
+
+type StatusChecker func(resp *http.Response) bool
