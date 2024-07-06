@@ -3,8 +3,7 @@ package client
 import "net/http"
 
 type RequestContext struct {
-	ApiUrl   string
-	ApiToken string
+	ApiUrl string
 
 	DefaultOptions []RequestOption
 

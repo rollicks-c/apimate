@@ -62,9 +62,9 @@ func WithDefaultRequest() client.RequestOption {
 	}
 }
 
-func WithBearerAuth() client.RequestOption {
+func WithBearerAuth(apiToken string) client.RequestOption {
 	return func(ctx *client.RequestContext) error {
-		ctx.Req.Header.Set("Authorization", "Bearer "+ctx.ApiToken)
+		ctx.Req.Header.Set("Authorization", "Bearer "+apiToken)
 		return nil
 	}
 }
@@ -72,6 +72,17 @@ func WithBearerAuth() client.RequestOption {
 func WithBasicAuth(user, pass string) client.RequestOption {
 	return func(ctx *client.RequestContext) error {
 		ctx.Req.SetBasicAuth(user, pass)
+		return nil
+	}
+}
+
+func WithAuthentikAuth(url, clientID, username, password string) client.RequestOption {
+	return func(ctx *client.RequestContext) error {
+		token, err := client.NewAuthentikAuth(url, clientID, username, password).Authenticate()
+		if err != nil {
+			return err
+		}
+		ctx.Req.Header.Set("Authorization", "Bearer "+token)
 		return nil
 	}
 }
@@ -173,19 +184,13 @@ func WithAcceptedErrors(code ...int) client.RequestOption {
 
 type Client struct {
 	apiUrl         string
-	apiToken       string
 	defaultOptions []client.RequestOption
 }
 
-func New(apiUrl, apiToken string, defaults ...client.RequestOption) *Client {
-
-	if len(defaults) == 0 {
-		defaults = append(defaults, WithBearerAuth())
-	}
+func New(apiUrl string, defaults ...client.RequestOption) *Client {
 
 	return &Client{
 		apiUrl:         apiUrl,
-		apiToken:       apiToken,
 		defaultOptions: defaults,
 	}
 }
@@ -195,7 +200,6 @@ func (c Client) Request(method, ep string, options ...client.RequestOption) erro
 	// create context with default options
 	ctx := &client.RequestContext{
 		ApiUrl:          c.apiUrl,
-		ApiToken:        c.apiToken,
 		Method:          method,
 		Endpoint:        fmt.Sprintf("%s/%s", strings.TrimSuffix(c.apiUrl, "/"), strings.TrimPrefix(ep, "/")),
 		AutoThrottle:    true,
