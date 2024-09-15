@@ -1,7 +1,6 @@
 package client
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -153,7 +152,7 @@ func (r RequestRunner) autoRetry(rq requester) requester {
 
 }
 
-func (r RequestRunner) directConsume(rq requester) (*http.Response, []byte, error) {
+func (r RequestRunner) directConsume(rq requester) (*http.Response, [][]byte, error) {
 
 	// read response
 	res, err := rq(r.ctx.Req)
@@ -166,25 +165,27 @@ func (r RequestRunner) directConsume(rq requester) (*http.Response, []byte, erro
 	}
 	defer res.Body.Close()
 
-	return res, data, nil
+	//pack
+	pack := [][]byte{data}
+	return res, pack, nil
 }
 
-func (r RequestRunner) pagedConsume(rq requester) (*http.Response, []byte, error) {
+func (r RequestRunner) pagedConsume(rq requester) (*http.Response, [][]byte, error) {
 
 	// no paging
-	if !r.ctx.ConsumeAllPages {
+	if !r.ctx.Paging.ConsumeAll {
 		return r.directConsume(rq)
 	}
 
 	// start consuming at first page
 	page := 1
 	var res *http.Response
-	var combinedData bytes.Buffer
+	var combinedData [][]byte
 	for {
 
 		// set page param
 		values := r.ctx.Req.URL.Query()
-		values.Set("page", fmt.Sprintf("%d", page))
+		values.Set(r.ctx.Paging.PageParam, fmt.Sprintf("%d", page))
 		r.ctx.Req.URL.RawQuery = values.Encode()
 
 		// read response
@@ -199,15 +200,16 @@ func (r RequestRunner) pagedConsume(rq requester) (*http.Response, []byte, error
 		if err := pageRes.Body.Close(); err != nil {
 			return nil, nil, err
 		}
-		combinedData.Write(body)
+
+		// combine
+		combinedData = append(combinedData, body)
 		res = pageRes
 
 		// handle paging
-		totalPagesRaw := pageRes.Header.Get("X-TOTAL-PAGES")
-		if totalPagesRaw == "" {
+		totalPages, ok, err := r.getPageCount(pageRes)
+		if !ok {
 			break
 		}
-		totalPages, err := strconv.Atoi(totalPagesRaw)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -217,5 +219,18 @@ func (r RequestRunner) pagedConsume(rq requester) (*http.Response, []byte, error
 		page++
 	}
 
-	return res, combinedData.Bytes(), nil
+	return res, combinedData, nil
+}
+
+func (r RequestRunner) getPageCount(res *http.Response) (int, bool, error) {
+
+	exp := res.Header.Get(r.ctx.Paging.PageCountHeader)
+	if exp == "" {
+		return 0, false, nil
+	}
+	pageCount, err := strconv.Atoi(exp)
+	if err != nil {
+		return 0, false, err
+	}
+	return pageCount, true, nil
 }

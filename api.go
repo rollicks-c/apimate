@@ -14,17 +14,25 @@ import (
 func WithJSONReceiver(receiver interface{}) client.RequestOption {
 	return func(ctx *client.RequestContext) error {
 		ctx.Req.Header.Set("Content-Type", "application/json")
-		ctx.Receiver = func(payload []byte) error {
+		ctx.Receiver = func(payload [][]byte) error {
 
-			if ctx.ConsumeAllPages {
-				data, err := client.ParseArrayList(payload)
+			// empty
+			if len(payload) == 0 {
+				return nil
+			}
+
+			// paged
+			if len(payload) > 1 {
+				merged := bytes.Join(payload, []byte("\n"))
+				data, err := client.ParseArrayList(merged)
 				if err != nil {
 					return err
 				}
-				payload = data
+				payload = [][]byte{data}
 			}
 
-			if err := json.Unmarshal(payload, receiver); err != nil {
+			// decode
+			if err := json.Unmarshal(payload[0], receiver); err != nil {
 				return err
 			}
 
@@ -36,8 +44,8 @@ func WithJSONReceiver(receiver interface{}) client.RequestOption {
 
 func WithRawReceiver(receiver *[]byte) client.RequestOption {
 	return func(ctx *client.RequestContext) error {
-		ctx.Receiver = func(payload []byte) error {
-			*receiver = payload
+		ctx.Receiver = func(payload [][]byte) error {
+			*receiver = client.MergePages(payload)
 			return nil
 		}
 		return nil
@@ -62,9 +70,9 @@ func WithDefaultRequest() client.RequestOption {
 	}
 }
 
-func WithBearerAuth() client.RequestOption {
+func WithBearerAuth(apiToken string) client.RequestOption {
 	return func(ctx *client.RequestContext) error {
-		ctx.Req.Header.Set("Authorization", "Bearer "+ctx.ApiToken)
+		ctx.Req.Header.Set("Authorization", "Bearer "+apiToken)
 		return nil
 	}
 }
@@ -76,9 +84,20 @@ func WithBasicAuth(user, pass string) client.RequestOption {
 	}
 }
 
+func WithAuthentikAuth(url, clientID, username, password string) client.RequestOption {
+	return func(ctx *client.RequestContext) error {
+		token, err := client.NewAuthentikAuth(url, clientID, username, password).Authenticate()
+		if err != nil {
+			return err
+		}
+		ctx.Req.Header.Set("Authorization", "Bearer "+token)
+		return nil
+	}
+}
+
 func WithNullReceiver() client.RequestOption {
 	return func(ctx *client.RequestContext) error {
-		ctx.Receiver = func(bytes []byte) error {
+		ctx.Receiver = func(bytes [][]byte) error {
 			return nil
 		}
 		return nil
@@ -157,35 +176,47 @@ func WithQuery(values url.Values) client.RequestOption {
 	}
 }
 
-func WithAllPages() client.RequestOption {
+func WithAllPages(pageParam, pagesHeader string) client.RequestOption {
 	return func(ctx *client.RequestContext) error {
-		ctx.ConsumeAllPages = true
+		ctx.Paging.ConsumeAll = true
+		ctx.Paging.PageParam = pageParam
+		ctx.Paging.PageCountHeader = pagesHeader
 		return nil
 	}
 }
 
-func WithAcceptedErrors(code ...int) client.RequestOption {
+func WithAcceptedErrors(codes ...int) client.RequestOption {
+
+	checker := func(resp *http.Response) bool {
+		for _, c := range codes {
+			if c == resp.StatusCode {
+				return true
+			}
+		}
+		return false
+	}
 	return func(ctx *client.RequestContext) error {
-		ctx.AcceptedErrorCodes = code
+		ctx.StatusChecker = checker
+		return nil
+	}
+}
+
+func WithStatusChecker(checker client.StatusChecker) client.RequestOption {
+	return func(ctx *client.RequestContext) error {
+		ctx.StatusChecker = checker
 		return nil
 	}
 }
 
 type Client struct {
 	apiUrl         string
-	apiToken       string
 	defaultOptions []client.RequestOption
 }
 
-func New(apiUrl, apiToken string, defaults ...client.RequestOption) *Client {
-
-	if len(defaults) == 0 {
-		defaults = append(defaults, WithBearerAuth())
-	}
+func New(apiUrl string, defaults ...client.RequestOption) *Client {
 
 	return &Client{
 		apiUrl:         apiUrl,
-		apiToken:       apiToken,
 		defaultOptions: defaults,
 	}
 }
@@ -194,20 +225,20 @@ func (c Client) Request(method, ep string, options ...client.RequestOption) erro
 
 	// create context with default options
 	ctx := &client.RequestContext{
-		ApiUrl:          c.apiUrl,
-		ApiToken:        c.apiToken,
-		Method:          method,
-		Endpoint:        fmt.Sprintf("%s/%s", strings.TrimSuffix(c.apiUrl, "/"), strings.TrimPrefix(ep, "/")),
-		AutoThrottle:    true,
-		AutoRetries:     3,
-		ConsumeAllPages: false,
-		DefaultOptions:  c.defaultOptions,
+		ApiUrl:         c.apiUrl,
+		Method:         method,
+		Endpoint:       fmt.Sprintf("%s/%s", strings.TrimSuffix(c.apiUrl, "/"), strings.TrimPrefix(ep, "/")),
+		AutoThrottle:   true,
+		AutoRetries:    3,
+		Paging:         client.PagingConfig{ConsumeAll: false},
+		DefaultOptions: c.defaultOptions,
 	}
 
 	// apply defaults options
 	defaults := []client.RequestOption{
 		WithDefaultRequest(),
 		WithNullReceiver(),
+		WithAcceptedErrors(),
 	}
 
 	// apply custom options

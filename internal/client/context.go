@@ -2,9 +2,13 @@ package client
 
 import "net/http"
 
+type PagingConfig struct {
+	ConsumeAll      bool
+	PageParam       string
+	PageCountHeader string
+}
 type RequestContext struct {
-	ApiUrl   string
-	ApiToken string
+	ApiUrl string
 
 	DefaultOptions []RequestOption
 
@@ -15,11 +19,14 @@ type RequestContext struct {
 
 	AutoThrottle       bool
 	AutoRetries        int
-	ConsumeAllPages    bool
 	AcceptedErrorCodes []int
+	StatusChecker      StatusChecker
 	Receiver           Receiver
+	Paging             PagingConfig
 }
 
 type RequestOption func(*RequestContext) error
 
-type Receiver func([]byte) error
+type Receiver func([][]byte) error
+
+type StatusChecker func(resp *http.Response) bool

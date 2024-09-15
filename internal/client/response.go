@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 )
@@ -9,16 +10,16 @@ type responseProcessor struct {
 	ctx RequestContext
 }
 
-func (rp responseProcessor) process(resp *http.Response, data []byte) error {
+func (rp responseProcessor) process(resp *http.Response, data [][]byte) error {
 
 	// check status
-	if rp.isAcceptedError(resp.StatusCode) {
+	if rp.ctx.StatusChecker(resp) {
 		return nil
 	}
 	if rp.isErrorCode(resp.StatusCode) {
 		httpError := fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 		if data != nil {
-			httpError = fmt.Errorf("unexpected status code: %d - %s", resp.StatusCode, string(data))
+			httpError = fmt.Errorf("unexpected status code: %d - %s", resp.StatusCode, string(data[0]))
 		}
 		return httpError
 	}
@@ -31,15 +32,6 @@ func (rp responseProcessor) process(resp *http.Response, data []byte) error {
 	return nil
 }
 
-func (rp responseProcessor) isAcceptedError(code int) bool {
-	for _, c := range rp.ctx.AcceptedErrorCodes {
-		if c == code {
-			return true
-		}
-	}
-	return false
-}
-
 func (rp responseProcessor) isErrorCode(code int) bool {
 	if code < 200 {
 		return true
@@ -48,4 +40,11 @@ func (rp responseProcessor) isErrorCode(code int) bool {
 		return true
 	}
 	return false
+}
+func MergePages(pages [][]byte) []byte {
+	var buffer bytes.Buffer
+	for _, b := range pages {
+		buffer.Write(b)
+	}
+	return buffer.Bytes()
 }
