@@ -1,0 +1,759 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>apimate: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/rollicks-c/apimate/api.go (0.0%)</option>
+				
+				<option value="file1">github.com/rollicks-c/apimate/internal/client/auth.go (0.0%)</option>
+				
+				<option value="file2">github.com/rollicks-c/apimate/internal/client/json.go (85.7%)</option>
+				
+				<option value="file3">github.com/rollicks-c/apimate/internal/client/response.go (0.0%)</option>
+				
+				<option value="file4">github.com/rollicks-c/apimate/internal/client/runner.go (0.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package apimate
+
+import (
+        "bytes"
+        "encoding/json"
+        "fmt"
+        "github.com/rollicks-c/apimate/internal/client"
+        "io"
+        "net/http"
+        "net/url"
+        "strings"
+)
+
+func WithJSONReceiver(receiver interface{}) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                ctx.Req.Header.Set("Content-Type", "application/json")
+                ctx.Receiver = func(payload [][]byte) error </span><span class="cov0" title="0">{
+
+                        // empty
+                        if len(payload) == 0 </span><span class="cov0" title="0">{
+                                return nil
+                        }</span>
+
+                        // paged
+                        <span class="cov0" title="0">if len(payload) &gt; 1 </span><span class="cov0" title="0">{
+                                merged := bytes.Join(payload, []byte("\n"))
+                                data, err := client.ParseArrayList(merged)
+                                if err != nil </span><span class="cov0" title="0">{
+                                        return err
+                                }</span>
+                                <span class="cov0" title="0">payload = [][]byte{data}</span>
+                        }
+
+                        // decode
+                        <span class="cov0" title="0">if err := json.Unmarshal(payload[0], receiver); err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+
+                        <span class="cov0" title="0">return nil</span>
+                }
+                <span class="cov0" title="0">return nil</span>
+        }
+}
+
+func WithRawReceiver(receiver *[]byte) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                ctx.Receiver = func(payload [][]byte) error </span><span class="cov0" title="0">{
+                        *receiver = client.MergePages(payload)
+                        return nil
+                }</span>
+                <span class="cov0" title="0">return nil</span>
+        }
+}
+
+func WithCustomReceiver(receiver client.Receiver) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                ctx.Receiver = receiver
+                return nil
+        }</span>
+}
+
+func WithDefaultRequest() client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                req, err := http.NewRequest(ctx.Method, ctx.Endpoint, nil)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov0" title="0">ctx.Req = req
+                return nil</span>
+        }
+}
+
+func WithBearerAuth(apiToken string) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                ctx.Req.Header.Set("Authorization", "Bearer "+apiToken)
+                return nil
+        }</span>
+}
+
+func WithBasicAuth(user, pass string) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                ctx.Req.SetBasicAuth(user, pass)
+                return nil
+        }</span>
+}
+
+func WithAuthentikAuth(url, clientID, username, password string) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                token, err := client.NewAuthentikAuth(url, clientID, username, password).Authenticate()
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov0" title="0">ctx.Req.Header.Set("Authorization", "Bearer "+token)
+                return nil</span>
+        }
+}
+
+func WithNullReceiver() client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                ctx.Receiver = func(bytes [][]byte) error </span><span class="cov0" title="0">{
+                        return nil
+                }</span>
+                <span class="cov0" title="0">return nil</span>
+        }
+}
+
+func WithPayload(body io.Reader) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                req, err := http.NewRequest(ctx.Method, ctx.Endpoint, body)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov0" title="0">ctx.Req = req
+                return nil</span>
+        }
+}
+
+func WithFormPayload(body io.Reader) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                req, err := http.NewRequest(ctx.Method, ctx.Endpoint, body)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov0" title="0">req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+                ctx.Req = req
+                return nil</span>
+        }
+}
+
+func WithJSONPayload(data any) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+
+                raw, err := json.Marshal(data)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+
+                <span class="cov0" title="0">body := bytes.NewReader(raw)
+                req, err := http.NewRequest(ctx.Method, ctx.Endpoint, body)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov0" title="0">req.Header.Set("Content-Type", "application/json")
+                ctx.Req = req
+                return nil</span>
+        }
+}
+
+func WithValues(values url.Values) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                req, err := http.NewRequest(ctx.Method, ctx.Endpoint, strings.NewReader(values.Encode()))
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov0" title="0">req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+                ctx.Req = req
+                return nil</span>
+        }
+}
+
+func WithQuery(values url.Values) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+
+                // parse url
+                parsedURL, err := url.Parse(ctx.Endpoint)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+
+                // add values
+                <span class="cov0" title="0">parsedURL.RawQuery = values.Encode()
+                ctx.Endpoint = parsedURL.String()
+                ctx.Req.URL = parsedURL
+
+                return nil</span>
+        }
+}
+
+func WithAllPages(pageParam, pagesHeader string) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                ctx.Paging.ConsumeAll = true
+                ctx.Paging.PageParam = pageParam
+                ctx.Paging.PageCountHeader = pagesHeader
+                return nil
+        }</span>
+}
+
+func WithAcceptedErrors(codes ...int) client.RequestOption <span class="cov0" title="0">{
+
+        checker := func(resp *http.Response) bool </span><span class="cov0" title="0">{
+                for _, c := range codes </span><span class="cov0" title="0">{
+                        if c == resp.StatusCode </span><span class="cov0" title="0">{
+                                return true
+                        }</span>
+                }
+                <span class="cov0" title="0">return false</span>
+        }
+        <span class="cov0" title="0">return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                ctx.StatusChecker = checker
+                return nil
+        }</span>
+}
+
+func WithStatusChecker(checker client.StatusChecker) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                ctx.StatusChecker = checker
+                return nil
+        }</span>
+}
+
+type Client struct {
+        apiUrl         string
+        defaultOptions []client.RequestOption
+}
+
+func New(apiUrl string, defaults ...client.RequestOption) *Client <span class="cov0" title="0">{
+
+        return &amp;Client{
+                apiUrl:         apiUrl,
+                defaultOptions: defaults,
+        }
+}</span>
+
+func (c Client) Request(method, ep string, options ...client.RequestOption) error <span class="cov0" title="0">{
+
+        // create context with default options
+        ctx := &amp;client.RequestContext{
+                ApiUrl:         c.apiUrl,
+                Method:         method,
+                Endpoint:       fmt.Sprintf("%s/%s", strings.TrimSuffix(c.apiUrl, "/"), strings.TrimPrefix(ep, "/")),
+                AutoThrottle:   true,
+                AutoRetries:    3,
+                Paging:         client.PagingConfig{ConsumeAll: false},
+                DefaultOptions: c.defaultOptions,
+        }
+
+        // apply defaults options
+        defaults := []client.RequestOption{
+                WithDefaultRequest(),
+                WithNullReceiver(),
+                WithAcceptedErrors(),
+        }
+
+        // apply custom options
+        options = append(defaults, options...)
+        for _, option := range options </span><span class="cov0" title="0">{
+                if err := option(ctx); err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+        }
+
+        // execute
+        <span class="cov0" title="0">runner := client.NewRunner(*ctx)
+        if err := runner.DoRequest(); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">return nil</span>
+
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package client
+
+import (
+        "encoding/json"
+        "fmt"
+        "io"
+        "net/http"
+        "net/url"
+)
+
+type AuthentikAuth struct {
+        url string
+
+        clientID string
+        username string
+        password string
+}
+
+func NewAuthentikAuth(url, clientID, username, password string) *AuthentikAuth <span class="cov0" title="0">{
+        return &amp;AuthentikAuth{
+                url:      url,
+                clientID: clientID,
+                username: username,
+                password: password,
+        }
+}</span>
+
+func (a AuthentikAuth) Authenticate() (string, error) <span class="cov0" title="0">{
+
+        // gather data
+        endpoint := fmt.Sprintf("%s/application/o/token/", a.url)
+        payload := url.Values{
+                "grant_type": {"client_credentials"},
+                "client_id":  {a.clientID},
+                "username":   {a.username},
+                "password":   {a.password},
+        }
+
+        // send request
+        resp, err := http.PostForm(endpoint, payload)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+        <span class="cov0" title="0">defer resp.Body.Close()
+
+        // read response
+        if resp.StatusCode != http.StatusOK </span><span class="cov0" title="0">{
+                return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+        }</span>
+        <span class="cov0" title="0">body, err := io.ReadAll(resp.Body)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+        <span class="cov0" title="0">var data map[string]interface{}
+        if err := json.Unmarshal(body, &amp;data); err != nil </span><span class="cov0" title="0">{
+                return "", err
+        }</span>
+        <span class="cov0" title="0">accessToken := data["access_token"].(string)
+
+        return accessToken, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package client
+
+import (
+        "bytes"
+        "encoding/json"
+        "io"
+)
+
+func ParseArrayList(raw []byte) ([]byte, error) <span class="cov8" title="1">{
+
+        buf := bytes.NewReader(raw)
+        decoder := json.NewDecoder(buf)
+
+        var all []map[string]interface{}
+
+        // Decode JSON arrays one by one
+        for </span><span class="cov8" title="1">{
+                var page []map[string]interface{}
+                if err := decoder.Decode(&amp;page); err == io.EOF </span><span class="cov8" title="1">{
+                        break</span>
+                } else<span class="cov8" title="1"> if err != nil </span><span class="cov0" title="0">{
+                        return nil, err
+                }</span>
+                <span class="cov8" title="1">all = append(all, page...)</span>
+        }
+
+        //
+        <span class="cov8" title="1">merged, err := json.Marshal(all)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">return merged, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package client
+
+import (
+        "bytes"
+        "fmt"
+        "net/http"
+)
+
+type responseProcessor struct {
+        ctx RequestContext
+}
+
+func (rp responseProcessor) process(resp *http.Response, data [][]byte) error <span class="cov0" title="0">{
+
+        // check status
+        if rp.ctx.StatusChecker(resp) </span><span class="cov0" title="0">{
+                return nil
+        }</span>
+        <span class="cov0" title="0">if rp.isErrorCode(resp.StatusCode) </span><span class="cov0" title="0">{
+                httpError := fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+                if data != nil </span><span class="cov0" title="0">{
+                        httpError = fmt.Errorf("unexpected status code: %d - %s", resp.StatusCode, string(data[0]))
+                }</span>
+                <span class="cov0" title="0">return httpError</span>
+        }
+
+        // process body
+        <span class="cov0" title="0">if err := rp.ctx.Receiver(data); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">return nil</span>
+}
+
+func (rp responseProcessor) isErrorCode(code int) bool <span class="cov0" title="0">{
+        if code &lt; 200 </span><span class="cov0" title="0">{
+                return true
+        }</span>
+        <span class="cov0" title="0">if code &gt; 299 </span><span class="cov0" title="0">{
+                return true
+        }</span>
+        <span class="cov0" title="0">return false</span>
+}
+func MergePages(pages [][]byte) []byte <span class="cov0" title="0">{
+        var buffer bytes.Buffer
+        for _, b := range pages </span><span class="cov0" title="0">{
+                buffer.Write(b)
+        }</span>
+        <span class="cov0" title="0">return buffer.Bytes()</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package client
+
+import (
+        "fmt"
+        "io"
+        "net/http"
+        "strconv"
+        "time"
+)
+
+type RequestRunner struct {
+        ctx RequestContext
+}
+
+type requester func(req *http.Request) (*http.Response, error)
+
+func NewRunner(ctx RequestContext) *RequestRunner <span class="cov0" title="0">{
+        return &amp;RequestRunner{
+                ctx: ctx,
+        }
+}</span>
+
+func (r RequestRunner) DoRequest() error <span class="cov0" title="0">{
+
+        // apply defaults
+        for _, opt := range r.ctx.DefaultOptions </span><span class="cov0" title="0">{
+                if err := opt(&amp;r.ctx); err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+        }
+
+        // prepare
+        <span class="cov0" title="0">client := &amp;http.Client{
+                CheckRedirect: func(req *http.Request, via []*http.Request) error </span><span class="cov0" title="0">{
+                        return http.ErrUseLastResponse
+                }</span>,
+        }
+        <span class="cov0" title="0">exe := func(req *http.Request) (*http.Response, error) </span><span class="cov0" title="0">{
+                return client.Do(r.ctx.Req)
+        }</span>
+
+        // runner middleware
+        <span class="cov0" title="0">exe = r.autoThrottle(exe)
+        exe = r.autoRetry(exe)
+
+        // execute
+        resp, data, err := r.pagedConsume(exe)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        // process response
+        <span class="cov0" title="0">rp := responseProcessor{
+                ctx: r.ctx,
+        }
+        if err := rp.process(resp, data); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov0" title="0">return nil</span>
+}
+
+func (r RequestRunner) autoThrottle(rq requester) requester <span class="cov0" title="0">{
+
+        if !r.ctx.AutoThrottle </span><span class="cov0" title="0">{
+                return rq
+        }</span>
+
+        <span class="cov0" title="0">at := func(req *http.Request) (*http.Response, error) </span><span class="cov0" title="0">{
+                attempts := 3
+                for </span><span class="cov0" title="0">{
+
+                        // run request
+                        resp, err := rq(req)
+                        if err != nil </span><span class="cov0" title="0">{
+                                return nil, err
+                        }</span>
+
+                        // check rate limit
+                        <span class="cov0" title="0">if resp.StatusCode == http.StatusTooManyRequests </span><span class="cov0" title="0">{
+
+                                // limit attempts
+                                attempts--
+                                if attempts &lt;= 0 </span><span class="cov0" title="0">{
+                                        return nil, fmt.Errorf("too many attempts")
+                                }</span>
+
+                                // wait and retry
+                                <span class="cov0" title="0">after := resp.Header.Get("Retry-After")
+                                seconds, err := strconv.Atoi(after)
+                                if err != nil </span><span class="cov0" title="0">{
+                                        seconds = 1
+                                }</span> else<span class="cov0" title="0"> if seconds &lt;= 0 </span><span class="cov0" title="0">{
+                                        seconds = 1
+                                }</span>
+                                <span class="cov0" title="0">time.Sleep(time.Duration(seconds) * time.Second)
+                                continue</span>
+
+                        }
+
+                        // done
+                        <span class="cov0" title="0">return resp, nil</span>
+                }
+        }
+
+        <span class="cov0" title="0">return at</span>
+
+}
+
+func (r RequestRunner) autoRetry(rq requester) requester <span class="cov0" title="0">{
+
+        if r.ctx.AutoRetries &lt;= 0 </span><span class="cov0" title="0">{
+                return rq
+        }</span>
+
+        <span class="cov0" title="0">mw := func(req *http.Request) (*http.Response, error) </span><span class="cov0" title="0">{
+                attempts := r.ctx.AutoRetries
+                for </span><span class="cov0" title="0">{
+
+                        // run request
+                        resp, err := rq(req)
+                        if err != nil </span><span class="cov0" title="0">{
+                                return nil, err
+                        }</span>
+
+                        // check if failed (can be rate limit)
+                        <span class="cov0" title="0">if resp.StatusCode == http.StatusBadRequest </span><span class="cov0" title="0">{
+
+                                // limit attempts
+                                attempts--
+                                if attempts &lt;= 0 </span><span class="cov0" title="0">{
+                                        err := fmt.Errorf("too many failed attempts for [%s]", req.URL.String())
+                                        data, bodyErr := io.ReadAll(resp.Body)
+                                        if bodyErr == nil </span><span class="cov0" title="0">{
+                                                err = fmt.Errorf("%s: %s", err, string(data))
+                                        }</span>
+                                        <span class="cov0" title="0">return nil, err</span>
+                                }
+
+                                // wait and retry
+                                <span class="cov0" title="0">time.Sleep(time.Duration(1) * time.Second)
+                                continue</span>
+
+                        }
+
+                        // done
+                        <span class="cov0" title="0">return resp, nil</span>
+                }
+        }
+
+        <span class="cov0" title="0">return mw</span>
+
+}
+
+func (r RequestRunner) directConsume(rq requester) (*http.Response, [][]byte, error) <span class="cov0" title="0">{
+
+        // read response
+        res, err := rq(r.ctx.Req)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, nil, err
+        }</span>
+        <span class="cov0" title="0">data, err := io.ReadAll(res.Body)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, nil, err
+        }</span>
+        <span class="cov0" title="0">defer res.Body.Close()
+
+        //pack
+        pack := [][]byte{data}
+        return res, pack, nil</span>
+}
+
+func (r RequestRunner) pagedConsume(rq requester) (*http.Response, [][]byte, error) <span class="cov0" title="0">{
+
+        // no paging
+        if !r.ctx.Paging.ConsumeAll </span><span class="cov0" title="0">{
+                return r.directConsume(rq)
+        }</span>
+
+        // start consuming at first page
+        <span class="cov0" title="0">page := 1
+        var res *http.Response
+        var combinedData [][]byte
+        for </span><span class="cov0" title="0">{
+
+                // set page param
+                values := r.ctx.Req.URL.Query()
+                values.Set(r.ctx.Paging.PageParam, fmt.Sprintf("%d", page))
+                r.ctx.Req.URL.RawQuery = values.Encode()
+
+                // read response
+                pageRes, err := rq(r.ctx.Req)
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, nil, err
+                }</span>
+                <span class="cov0" title="0">body, err := io.ReadAll(pageRes.Body)
+                if err != nil </span><span class="cov0" title="0">{
+                        return nil, nil, err
+                }</span>
+                <span class="cov0" title="0">if err := pageRes.Body.Close(); err != nil </span><span class="cov0" title="0">{
+                        return nil, nil, err
+                }</span>
+
+                // combine
+                <span class="cov0" title="0">combinedData = append(combinedData, body)
+                res = pageRes
+
+                // handle paging
+                totalPages, ok, err := r.getPageCount(pageRes)
+                if !ok </span><span class="cov0" title="0">{
+                        break</span>
+                }
+                <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+                        return nil, nil, err
+                }</span>
+                <span class="cov0" title="0">if page &gt;= totalPages </span><span class="cov0" title="0">{
+                        break</span>
+                }
+                <span class="cov0" title="0">page++</span>
+        }
+
+        <span class="cov0" title="0">return res, combinedData, nil</span>
+}
+
+func (r RequestRunner) getPageCount(res *http.Response) (int, bool, error) <span class="cov0" title="0">{
+
+        exp := res.Header.Get(r.ctx.Paging.PageCountHeader)
+        if exp == "" </span><span class="cov0" title="0">{
+                return 0, false, nil
+        }</span>
+        <span class="cov0" title="0">pageCount, err := strconv.Atoi(exp)
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, false, err
+        }</span>
+        <span class="cov0" title="0">return pageCount, true, nil</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
