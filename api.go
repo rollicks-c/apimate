@@ -77,6 +77,13 @@ func WithBearerAuth(apiToken string) client.RequestOption {
 	}
 }
 
+func WithHeaderAuth(headerKey, token string) client.RequestOption {
+	return func(ctx *client.RequestContext) error {
+		ctx.Req.Header.Set(headerKey, token)
+		return nil
+	}
+}
+
 func WithBasicAuth(user, pass string) client.RequestOption {
 	return func(ctx *client.RequestContext) error {
 		ctx.Req.SetBasicAuth(user, pass)
