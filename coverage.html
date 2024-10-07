@@ -156,6 +156,13 @@ func WithBearerAuth(apiToken string) client.RequestOption <span class="cov0" tit
         }</span>
 }
 
+func WithHeaderAuth(headerKey, token string) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                ctx.Req.Header.Set(headerKey, token)
+                return nil
+        }</span>
+}
+
 func WithBasicAuth(user, pass string) client.RequestOption <span class="cov0" title="0">{
         return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
                 ctx.Req.SetBasicAuth(user, pass)
