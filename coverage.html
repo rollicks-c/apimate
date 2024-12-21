@@ -65,6 +65,12 @@
 				
 				<option value="file4">github.com/rollicks-c/apimate/internal/client/runner.go (0.0%)</option>
 				
+				<option value="file5">github.com/rollicks-c/apimate/opt_auth.go (0.0%)</option>
+				
+				<option value="file6">github.com/rollicks-c/apimate/opt_req.go (0.0%)</option>
+				
+				<option value="file7">github.com/rollicks-c/apimate/opt_res.go (0.0%)</option>
+				
 				</select>
 			</div>
 			<div id="legend">
@@ -80,187 +86,11 @@
 		<pre class="file" id="file0" style="display: none">package apimate
 
 import (
-        "bytes"
-        "encoding/json"
         "fmt"
         "github.com/rollicks-c/apimate/internal/client"
-        "io"
         "net/http"
-        "net/url"
         "strings"
 )
-
-func WithJSONReceiver(receiver interface{}) client.RequestOption <span class="cov0" title="0">{
-        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
-                ctx.Req.Header.Set("Content-Type", "application/json")
-                ctx.Receiver = func(payload [][]byte) error </span><span class="cov0" title="0">{
-
-                        // empty
-                        if len(payload) == 0 </span><span class="cov0" title="0">{
-                                return nil
-                        }</span>
-
-                        // paged
-                        <span class="cov0" title="0">if len(payload) &gt; 1 </span><span class="cov0" title="0">{
-                                merged := bytes.Join(payload, []byte("\n"))
-                                data, err := client.ParseArrayList(merged)
-                                if err != nil </span><span class="cov0" title="0">{
-                                        return err
-                                }</span>
-                                <span class="cov0" title="0">payload = [][]byte{data}</span>
-                        }
-
-                        // decode
-                        <span class="cov0" title="0">if err := json.Unmarshal(payload[0], receiver); err != nil </span><span class="cov0" title="0">{
-                                return err
-                        }</span>
-
-                        <span class="cov0" title="0">return nil</span>
-                }
-                <span class="cov0" title="0">return nil</span>
-        }
-}
-
-func WithRawReceiver(receiver *[]byte) client.RequestOption <span class="cov0" title="0">{
-        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
-                ctx.Receiver = func(payload [][]byte) error </span><span class="cov0" title="0">{
-                        *receiver = client.MergePages(payload)
-                        return nil
-                }</span>
-                <span class="cov0" title="0">return nil</span>
-        }
-}
-
-func WithCustomReceiver(receiver client.Receiver) client.RequestOption <span class="cov0" title="0">{
-        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
-                ctx.Receiver = receiver
-                return nil
-        }</span>
-}
-
-func WithDefaultRequest() client.RequestOption <span class="cov0" title="0">{
-        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
-                req, err := http.NewRequest(ctx.Method, ctx.Endpoint, nil)
-                if err != nil </span><span class="cov0" title="0">{
-                        return err
-                }</span>
-                <span class="cov0" title="0">ctx.Req = req
-                return nil</span>
-        }
-}
-
-func WithBearerAuth(apiToken string) client.RequestOption <span class="cov0" title="0">{
-        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
-                ctx.Req.Header.Set("Authorization", "Bearer "+apiToken)
-                return nil
-        }</span>
-}
-
-func WithHeaderAuth(headerKey, token string) client.RequestOption <span class="cov0" title="0">{
-        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
-                ctx.Req.Header.Set(headerKey, token)
-                return nil
-        }</span>
-}
-
-func WithBasicAuth(user, pass string) client.RequestOption <span class="cov0" title="0">{
-        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
-                ctx.Req.SetBasicAuth(user, pass)
-                return nil
-        }</span>
-}
-
-func WithAuthentikAuth(url, clientID, username, password string) client.RequestOption <span class="cov0" title="0">{
-        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
-                token, err := client.NewAuthentikAuth(url, clientID, username, password).Authenticate()
-                if err != nil </span><span class="cov0" title="0">{
-                        return err
-                }</span>
-                <span class="cov0" title="0">ctx.Req.Header.Set("Authorization", "Bearer "+token)
-                return nil</span>
-        }
-}
-
-func WithNullReceiver() client.RequestOption <span class="cov0" title="0">{
-        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
-                ctx.Receiver = func(bytes [][]byte) error </span><span class="cov0" title="0">{
-                        return nil
-                }</span>
-                <span class="cov0" title="0">return nil</span>
-        }
-}
-
-func WithPayload(body io.Reader) client.RequestOption <span class="cov0" title="0">{
-        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
-                req, err := http.NewRequest(ctx.Method, ctx.Endpoint, body)
-                if err != nil </span><span class="cov0" title="0">{
-                        return err
-                }</span>
-                <span class="cov0" title="0">ctx.Req = req
-                return nil</span>
-        }
-}
-
-func WithFormPayload(body io.Reader) client.RequestOption <span class="cov0" title="0">{
-        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
-                req, err := http.NewRequest(ctx.Method, ctx.Endpoint, body)
-                if err != nil </span><span class="cov0" title="0">{
-                        return err
-                }</span>
-                <span class="cov0" title="0">req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-                ctx.Req = req
-                return nil</span>
-        }
-}
-
-func WithJSONPayload(data any) client.RequestOption <span class="cov0" title="0">{
-        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
-
-                raw, err := json.Marshal(data)
-                if err != nil </span><span class="cov0" title="0">{
-                        return err
-                }</span>
-
-                <span class="cov0" title="0">body := bytes.NewReader(raw)
-                req, err := http.NewRequest(ctx.Method, ctx.Endpoint, body)
-                if err != nil </span><span class="cov0" title="0">{
-                        return err
-                }</span>
-                <span class="cov0" title="0">req.Header.Set("Content-Type", "application/json")
-                ctx.Req = req
-                return nil</span>
-        }
-}
-
-func WithValues(values url.Values) client.RequestOption <span class="cov0" title="0">{
-        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
-                req, err := http.NewRequest(ctx.Method, ctx.Endpoint, strings.NewReader(values.Encode()))
-                if err != nil </span><span class="cov0" title="0">{
-                        return err
-                }</span>
-                <span class="cov0" title="0">req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-                ctx.Req = req
-                return nil</span>
-        }
-}
-
-func WithQuery(values url.Values) client.RequestOption <span class="cov0" title="0">{
-        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
-
-                // parse url
-                parsedURL, err := url.Parse(ctx.Endpoint)
-                if err != nil </span><span class="cov0" title="0">{
-                        return err
-                }</span>
-
-                // add values
-                <span class="cov0" title="0">parsedURL.RawQuery = values.Encode()
-                ctx.Endpoint = parsedURL.String()
-                ctx.Req.URL = parsedURL
-
-                return nil</span>
-        }
-}
 
 func WithAllPages(pageParam, pagesHeader string) client.RequestOption <span class="cov0" title="0">{
         return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
@@ -731,6 +561,235 @@ func (r RequestRunner) getPageCount(res *http.Response) (int, bool, error) <span
                 return 0, false, err
         }</span>
         <span class="cov0" title="0">return pageCount, true, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package apimate
+
+import (
+        "github.com/rollicks-c/apimate/internal/client"
+)
+
+func WithBearerAuth(apiToken string) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                ctx.Req.Header.Set("Authorization", "Bearer "+apiToken)
+                return nil
+        }</span>
+}
+
+func WithHeaderAuth(headerKey, token string) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                ctx.Req.Header.Set(headerKey, token)
+                return nil
+        }</span>
+}
+
+func WithBasicAuth(user, pass string) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                ctx.Req.SetBasicAuth(user, pass)
+                return nil
+        }</span>
+}
+
+func WithAuthentikAuth(url, clientID, username, password string) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                token, err := client.NewAuthentikAuth(url, clientID, username, password).Authenticate()
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov0" title="0">ctx.Req.Header.Set("Authorization", "Bearer "+token)
+                return nil</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package apimate
+
+import (
+        "bytes"
+        "encoding/json"
+        "github.com/rollicks-c/apimate/internal/client"
+        "io"
+        "mime/multipart"
+        "net/http"
+        "net/url"
+        "strings"
+)
+
+func WithDefaultRequest() client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                req, err := http.NewRequest(ctx.Method, ctx.Endpoint, nil)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov0" title="0">ctx.Req = req
+                return nil</span>
+        }
+}
+
+func WithPayload(body io.Reader) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                req, err := http.NewRequest(ctx.Method, ctx.Endpoint, body)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov0" title="0">ctx.Req = req
+                return nil</span>
+        }
+}
+
+func WithFormPayload(body io.Reader) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                req, err := http.NewRequest(ctx.Method, ctx.Endpoint, body)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov0" title="0">req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+                ctx.Req = req
+                return nil</span>
+        }
+}
+
+func WithJSONPayload(data any) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+
+                raw, err := json.Marshal(data)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+
+                <span class="cov0" title="0">body := bytes.NewReader(raw)
+                req, err := http.NewRequest(ctx.Method, ctx.Endpoint, body)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov0" title="0">req.Header.Set("Content-Type", "application/json")
+                ctx.Req = req
+                return nil</span>
+        }
+}
+
+func WithValues(values url.Values) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                req, err := http.NewRequest(ctx.Method, ctx.Endpoint, strings.NewReader(values.Encode()))
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov0" title="0">req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+                ctx.Req = req
+                return nil</span>
+        }
+}
+
+func WithQuery(values url.Values) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+
+                // parse url
+                parsedURL, err := url.Parse(ctx.Endpoint)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+
+                // add values
+                <span class="cov0" title="0">parsedURL.RawQuery = values.Encode()
+                ctx.Endpoint = parsedURL.String()
+                ctx.Req.URL = parsedURL
+
+                return nil</span>
+        }
+}
+
+func WithFilePayload(name string, data []byte) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+
+                // write file to form field
+                body := &amp;bytes.Buffer{}
+                writer := multipart.NewWriter(body)
+                formFile, err := writer.CreateFormFile("file", name)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov0" title="0">if _, err = io.Copy(formFile, bytes.NewReader(data)); err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov0" title="0">_ = writer.Close()
+
+                // create request
+                req, err := http.NewRequest(ctx.Method, ctx.Endpoint, body)
+                if err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+                <span class="cov0" title="0">req.Header.Set("Content-Type", writer.FormDataContentType())
+                ctx.Req = req
+
+                return nil</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package apimate
+
+import (
+        "bytes"
+        "encoding/json"
+        "github.com/rollicks-c/apimate/internal/client"
+)
+
+func WithJSONReceiver(receiver interface{}) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                ctx.Req.Header.Set("Content-Type", "application/json")
+                ctx.Receiver = func(payload [][]byte) error </span><span class="cov0" title="0">{
+
+                        // empty
+                        if len(payload) == 0 </span><span class="cov0" title="0">{
+                                return nil
+                        }</span>
+
+                        // paged
+                        <span class="cov0" title="0">if len(payload) &gt; 1 </span><span class="cov0" title="0">{
+                                merged := bytes.Join(payload, []byte("\n"))
+                                data, err := client.ParseArrayList(merged)
+                                if err != nil </span><span class="cov0" title="0">{
+                                        return err
+                                }</span>
+                                <span class="cov0" title="0">payload = [][]byte{data}</span>
+                        }
+
+                        // decode
+                        <span class="cov0" title="0">if err := json.Unmarshal(payload[0], receiver); err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+
+                        <span class="cov0" title="0">return nil</span>
+                }
+                <span class="cov0" title="0">return nil</span>
+        }
+}
+
+func WithRawReceiver(receiver *[]byte) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                ctx.Receiver = func(payload [][]byte) error </span><span class="cov0" title="0">{
+                        *receiver = client.MergePages(payload)
+                        return nil
+                }</span>
+                <span class="cov0" title="0">return nil</span>
+        }
+}
+
+func WithCustomReceiver(receiver client.Receiver) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                ctx.Receiver = receiver
+                return nil
+        }</span>
+}
+
+func WithNullReceiver() client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                ctx.Receiver = func(bytes [][]byte) error </span><span class="cov0" title="0">{
+                        return nil
+                }</span>
+                <span class="cov0" title="0">return nil</span>
+        }
 }
 </pre>
 		
