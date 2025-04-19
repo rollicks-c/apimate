@@ -92,6 +92,8 @@ import (
         "strings"
 )
 
+type Option = client.RequestOption
+
 func WithAllPages(pageParam, pagesHeader string) client.RequestOption <span class="cov0" title="0">{
         return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
                 ctx.Paging.ConsumeAll = true
@@ -141,13 +143,15 @@ func (c Client) Request(method, ep string, options ...client.RequestOption) erro
 
         // create context with default options
         ctx := &amp;client.RequestContext{
-                ApiUrl:         c.apiUrl,
-                Method:         method,
-                Endpoint:       fmt.Sprintf("%s/%s", strings.TrimSuffix(c.apiUrl, "/"), strings.TrimPrefix(ep, "/")),
-                AutoThrottle:   true,
-                AutoRetries:    3,
-                Paging:         client.PagingConfig{ConsumeAll: false},
-                DefaultOptions: c.defaultOptions,
+                ApiUrl:             c.apiUrl,
+                Method:             method,
+                Endpoint:           fmt.Sprintf("%s/%s", strings.TrimSuffix(c.apiUrl, "/"), strings.TrimPrefix(ep, "/")),
+                AutoThrottle:       true,
+                AutoRetries:        3,
+                Paging:             client.PagingConfig{ConsumeAll: false},
+                DefaultOptions:     c.defaultOptions,
+                ResponseProcessors: []client.ResponseProcessor{},
+                SkipTLSVerify:      false,
         }
 
         // apply defaults options
@@ -300,6 +304,13 @@ func (rp responseProcessor) process(resp *http.Response, data [][]byte) error <s
                 <span class="cov0" title="0">return httpError</span>
         }
 
+        // process headers
+        <span class="cov0" title="0">for _, processor := range rp.ctx.ResponseProcessors </span><span class="cov0" title="0">{
+                if err := processor(resp); err != nil </span><span class="cov0" title="0">{
+                        return err
+                }</span>
+        }
+
         // process body
         <span class="cov0" title="0">if err := rp.ctx.Receiver(data); err != nil </span><span class="cov0" title="0">{
                 return err
@@ -329,6 +340,7 @@ func MergePages(pages [][]byte) []byte <span class="cov0" title="0">{
 		<pre class="file" id="file4" style="display: none">package client
 
 import (
+        "crypto/tls"
         "fmt"
         "io"
         "net/http"
@@ -362,6 +374,9 @@ func (r RequestRunner) DoRequest() error <span class="cov0" title="0">{
                 CheckRedirect: func(req *http.Request, via []*http.Request) error </span><span class="cov0" title="0">{
                         return http.ErrUseLastResponse
                 }</span>,
+                Transport: &amp;http.Transport{
+                        TLSClientConfig: &amp;tls.Config{InsecureSkipVerify: r.ctx.SkipTLSVerify},
+                },
         }
         <span class="cov0" title="0">exe := func(req *http.Request) (*http.Response, error) </span><span class="cov0" title="0">{
                 return client.Do(r.ctx.Req)
@@ -601,6 +616,13 @@ func WithAuthentikAuth(url, clientID, username, password string) client.RequestO
                 return nil</span>
         }
 }
+
+func WithTlsSkipVerify(skip bool) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                ctx.SkipTLSVerify = skip
+                return nil
+        }</span>
+}
 </pre>
 		
 		<pre class="file" id="file6" style="display: none">package apimate
@@ -615,6 +637,28 @@ import (
         "net/url"
         "strings"
 )
+
+func WithCookie(name string, value string) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                cookie := &amp;http.Cookie{
+                        Name:  name,
+                        Value: value,
+                }
+                ctx.Req.AddCookie(cookie)
+                return nil
+        }</span>
+}
+
+func WithHeaders(Headers http.Header) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                for key, values := range Headers </span><span class="cov0" title="0">{
+                        for _, value := range values </span><span class="cov0" title="0">{
+                                ctx.Req.Header.Add(key, value)
+                        }</span>
+                }
+                <span class="cov0" title="0">return nil</span>
+        }
+}
 
 func WithDefaultRequest() client.RequestOption <span class="cov0" title="0">{
         return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
@@ -732,8 +776,33 @@ func WithFilePayload(name string, data []byte) client.RequestOption <span class=
 import (
         "bytes"
         "encoding/json"
+        "encoding/xml"
         "github.com/rollicks-c/apimate/internal/client"
+        "net/http"
 )
+
+func WithCookieGrabber(name string, value *string) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                grabber := func(resp *http.Response) error </span><span class="cov0" title="0">{
+                        for _, c := range resp.Cookies() </span><span class="cov0" title="0">{
+                                if c.Name == name </span><span class="cov0" title="0">{
+                                        *value = c.Value
+                                        return nil
+                                }</span>
+                        }
+                        <span class="cov0" title="0">return nil</span>
+                }
+                <span class="cov0" title="0">ctx.ResponseProcessors = append(ctx.ResponseProcessors, grabber)
+                return nil</span>
+        }
+}
+
+func WithResponseProcessor(proc client.ResponseProcessor) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                ctx.ResponseProcessors = append(ctx.ResponseProcessors, proc)
+                return nil
+        }</span>
+}
 
 func WithJSONReceiver(receiver interface{}) client.RequestOption <span class="cov0" title="0">{
         return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
@@ -757,6 +826,36 @@ func WithJSONReceiver(receiver interface{}) client.RequestOption <span class="co
 
                         // decode
                         <span class="cov0" title="0">if err := json.Unmarshal(payload[0], receiver); err != nil </span><span class="cov0" title="0">{
+                                return err
+                        }</span>
+
+                        <span class="cov0" title="0">return nil</span>
+                }
+                <span class="cov0" title="0">return nil</span>
+        }
+}
+
+func WithXMLReceiver(receiver interface{}) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                ctx.Receiver = func(payload [][]byte) error </span><span class="cov0" title="0">{
+
+                        // empty
+                        if len(payload) == 0 </span><span class="cov0" title="0">{
+                                return nil
+                        }</span>
+
+                        // paged
+                        <span class="cov0" title="0">if len(payload) &gt; 1 </span><span class="cov0" title="0">{
+                                merged := bytes.Join(payload, []byte("\n"))
+                                data, err := client.ParseArrayList(merged)
+                                if err != nil </span><span class="cov0" title="0">{
+                                        return err
+                                }</span>
+                                <span class="cov0" title="0">payload = [][]byte{data}</span>
+                        }
+
+                        // decode
+                        <span class="cov0" title="0">if err := xml.Unmarshal(payload[0], receiver); err != nil </span><span class="cov0" title="0">{
                                 return err
                         }</span>
 
