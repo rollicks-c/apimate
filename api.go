@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+type Option = client.RequestOption
+
 func WithAllPages(pageParam, pagesHeader string) client.RequestOption {
 	return func(ctx *client.RequestContext) error {
 		ctx.Paging.ConsumeAll = true
@@ -56,13 +58,15 @@ func (c Client) Request(method, ep string, options ...client.RequestOption) erro
 
 	// create context with default options
 	ctx := &client.RequestContext{
-		ApiUrl:         c.apiUrl,
-		Method:         method,
-		Endpoint:       fmt.Sprintf("%s/%s", strings.TrimSuffix(c.apiUrl, "/"), strings.TrimPrefix(ep, "/")),
-		AutoThrottle:   true,
-		AutoRetries:    3,
-		Paging:         client.PagingConfig{ConsumeAll: false},
-		DefaultOptions: c.defaultOptions,
+		ApiUrl:             c.apiUrl,
+		Method:             method,
+		Endpoint:           fmt.Sprintf("%s/%s", strings.TrimSuffix(c.apiUrl, "/"), strings.TrimPrefix(ep, "/")),
+		AutoThrottle:       true,
+		AutoRetries:        3,
+		Paging:             client.PagingConfig{ConsumeAll: false},
+		DefaultOptions:     c.defaultOptions,
+		ResponseProcessors: []client.ResponseProcessor{},
+		SkipTLSVerify:      false,
 	}
 
 	// apply defaults options

@@ -24,6 +24,13 @@ func (rp responseProcessor) process(resp *http.Response, data [][]byte) error {
 		return httpError
 	}
 
+	// process headers
+	for _, processor := range rp.ctx.ResponseProcessors {
+		if err := processor(resp); err != nil {
+			return err
+		}
+	}
+
 	// process body
 	if err := rp.ctx.Receiver(data); err != nil {
 		return err

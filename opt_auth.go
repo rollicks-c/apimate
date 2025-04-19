@@ -35,3 +35,10 @@ func WithAuthentikAuth(url, clientID, username, password string) client.RequestO
 		return nil
 	}
 }
+
+func WithTlsSkipVerify(skip bool) client.RequestOption {
+	return func(ctx *client.RequestContext) error {
+		ctx.SkipTLSVerify = skip
+		return nil
+	}
+}

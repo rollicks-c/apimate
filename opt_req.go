@@ -11,6 +11,28 @@ import (
 	"strings"
 )
 
+func WithCookie(name string, value string) client.RequestOption {
+	return func(ctx *client.RequestContext) error {
+		cookie := &http.Cookie{
+			Name:  name,
+			Value: value,
+		}
+		ctx.Req.AddCookie(cookie)
+		return nil
+	}
+}
+
+func WithHeaders(Headers http.Header) client.RequestOption {
+	return func(ctx *client.RequestContext) error {
+		for key, values := range Headers {
+			for _, value := range values {
+				ctx.Req.Header.Add(key, value)
+			}
+		}
+		return nil
+	}
+}
+
 func WithDefaultRequest() client.RequestOption {
 	return func(ctx *client.RequestContext) error {
 		req, err := http.NewRequest(ctx.Method, ctx.Endpoint, nil)

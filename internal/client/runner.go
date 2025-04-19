@@ -1,6 +1,7 @@
 package client
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -33,6 +34,9 @@ func (r RequestRunner) DoRequest() error {
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
+		},
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: r.ctx.SkipTLSVerify},
 		},
 	}
 	exe := func(req *http.Request) (*http.Response, error) {

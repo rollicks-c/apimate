@@ -2,6 +2,8 @@ package client
 
 import "net/http"
 
+type ResponseProcessor func(*http.Response) error
+
 type PagingConfig struct {
 	ConsumeAll      bool
 	PageParam       string
@@ -22,7 +24,9 @@ type RequestContext struct {
 	AcceptedErrorCodes []int
 	StatusChecker      StatusChecker
 	Receiver           Receiver
+	ResponseProcessors []ResponseProcessor
 	Paging             PagingConfig
+	SkipTLSVerify      bool
 }
 
 type RequestOption func(*RequestContext) error
@@ -30,3 +34,5 @@ type RequestOption func(*RequestContext) error
 type Receiver func([][]byte) error
 
 type StatusChecker func(resp *http.Response) bool
+
+type CookieReceiver func(cookies []*http.Cookie) error
