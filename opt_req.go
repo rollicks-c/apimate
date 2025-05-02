@@ -32,6 +32,12 @@ func WithHeaders(Headers http.Header) client.RequestOption {
 		return nil
 	}
 }
+func WithHeader(key, value string) client.RequestOption {
+	return func(ctx *client.RequestContext) error {
+		ctx.Req.Header.Add(key, value)
+		return nil
+	}
+}
 
 func WithDefaultRequest() client.RequestOption {
 	return func(ctx *client.RequestContext) error {
