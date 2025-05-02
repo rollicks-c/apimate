@@ -659,6 +659,12 @@ func WithHeaders(Headers http.Header) client.RequestOption <span class="cov0" ti
                 <span class="cov0" title="0">return nil</span>
         }
 }
+func WithHeader(key, value string) client.RequestOption <span class="cov0" title="0">{
+        return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
+                ctx.Req.Header.Add(key, value)
+                return nil
+        }</span>
+}
 
 func WithDefaultRequest() client.RequestOption <span class="cov0" title="0">{
         return func(ctx *client.RequestContext) error </span><span class="cov0" title="0">{
