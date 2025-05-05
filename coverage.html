@@ -227,8 +227,13 @@ func (a AuthentikAuth) Authenticate() (string, error) <span class="cov0" title="
 
         // read response
         if resp.StatusCode != http.StatusOK </span><span class="cov0" title="0">{
-                return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-        }</span>
+                errMsg := fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+                body, err := io.ReadAll(resp.Body)
+                if err == nil </span><span class="cov0" title="0">{
+                        errMsg = fmt.Errorf("%s: %s", errMsg, string(body))
+                }</span>
+                <span class="cov0" title="0">return "", errMsg</span>
+        }
         <span class="cov0" title="0">body, err := io.ReadAll(resp.Body)
         if err != nil </span><span class="cov0" title="0">{
                 return "", err
