@@ -45,7 +45,12 @@ func (a AuthentikAuth) Authenticate() (string, error) {
 
 	// read response
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		errMsg := fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		body, err := io.ReadAll(resp.Body)
+		if err == nil {
+			errMsg = fmt.Errorf("%s: %s", errMsg, string(body))
+		}
+		return "", errMsg
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
