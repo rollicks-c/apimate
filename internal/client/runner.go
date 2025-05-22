@@ -119,26 +119,30 @@ func (r RequestRunner) autoRetry(rq requester) requester {
 
 	mw := func(req *http.Request) (*http.Response, error) {
 		attempts := r.ctx.AutoRetries
+		var reqErr error
 		for {
 
 			// run request
 			resp, err := rq(req)
 			if err != nil {
-				return nil, err
+				runnerErr := fmt.Errorf("failed to execute request [%s] - last error: %v", req.URL.String(), reqErr)
+				return nil, runnerErr
 			}
 
 			// check if failed (can be rate limit)
 			if resp.StatusCode == http.StatusBadRequest {
 
+				// gather error
+				data, bodyErr := io.ReadAll(resp.Body)
+				if bodyErr == nil {
+					reqErr = fmt.Errorf("%s", string(data))
+				}
+
 				// limit attempts
 				attempts--
 				if attempts <= 0 {
-					err := fmt.Errorf("too many failed attempts for [%s]", req.URL.String())
-					data, bodyErr := io.ReadAll(resp.Body)
-					if bodyErr == nil {
-						err = fmt.Errorf("%s: %s", err, string(data))
-					}
-					return nil, err
+					runnerErr := fmt.Errorf("too many failed attempts for [%s] - last error: %v", req.URL.String(), reqErr)
+					return nil, runnerErr
 				}
 
 				// wait and retry
