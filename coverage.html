@@ -463,27 +463,31 @@ func (r RequestRunner) autoRetry(rq requester) requester <span class="cov0" titl
 
         <span class="cov0" title="0">mw := func(req *http.Request) (*http.Response, error) </span><span class="cov0" title="0">{
                 attempts := r.ctx.AutoRetries
+                var reqErr error
                 for </span><span class="cov0" title="0">{
 
                         // run request
                         resp, err := rq(req)
                         if err != nil </span><span class="cov0" title="0">{
-                                return nil, err
+                                runnerErr := fmt.Errorf("failed to execute request [%s] - last error: %v", req.URL.String(), reqErr)
+                                return nil, runnerErr
                         }</span>
 
                         // check if failed (can be rate limit)
                         <span class="cov0" title="0">if resp.StatusCode == http.StatusBadRequest </span><span class="cov0" title="0">{
 
+                                // gather error
+                                data, bodyErr := io.ReadAll(resp.Body)
+                                if bodyErr == nil </span><span class="cov0" title="0">{
+                                        reqErr = fmt.Errorf("%s", string(data))
+                                }</span>
+
                                 // limit attempts
-                                attempts--
+                                <span class="cov0" title="0">attempts--
                                 if attempts &lt;= 0 </span><span class="cov0" title="0">{
-                                        err := fmt.Errorf("too many failed attempts for [%s]", req.URL.String())
-                                        data, bodyErr := io.ReadAll(resp.Body)
-                                        if bodyErr == nil </span><span class="cov0" title="0">{
-                                                err = fmt.Errorf("%s: %s", err, string(data))
-                                        }</span>
-                                        <span class="cov0" title="0">return nil, err</span>
-                                }
+                                        runnerErr := fmt.Errorf("too many failed attempts for [%s] - last error: %v", req.URL.String(), reqErr)
+                                        return nil, runnerErr
+                                }</span>
 
                                 // wait and retry
                                 <span class="cov0" title="0">time.Sleep(time.Duration(1) * time.Second)
