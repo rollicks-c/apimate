@@ -59,7 +59,7 @@
 				
 				<option value="file1">github.com/rollicks-c/apimate/internal/client/auth.go (0.0%)</option>
 				
-				<option value="file2">github.com/rollicks-c/apimate/internal/client/json.go (85.7%)</option>
+				<option value="file2">github.com/rollicks-c/apimate/internal/client/json.go (87.5%)</option>
 				
 				<option value="file3">github.com/rollicks-c/apimate/internal/client/response.go (0.0%)</option>
 				
@@ -253,7 +253,10 @@ func (a AuthentikAuth) Authenticate() (string, error) <span class="cov0" title="
 import (
         "bytes"
         "encoding/json"
+        "fmt"
         "io"
+        "strconv"
+        "strings"
 )
 
 func ParseArrayList(raw []byte) ([]byte, error) <span class="cov8" title="1">{
@@ -281,6 +284,63 @@ func ParseArrayList(raw []byte) ([]byte, error) <span class="cov8" title="1">{
         }</span>
         <span class="cov8" title="1">return merged, nil</span>
 }
+
+type JsonBool bool
+
+func (sb *JsonBool) UnmarshalJSON(data []byte) error <span class="cov8" title="1">{
+
+        // try boolean
+        var b bool
+        if err := json.Unmarshal(data, &amp;b); err == nil </span><span class="cov8" title="1">{
+                *sb = JsonBool(b)
+                return nil
+        }</span>
+
+        // try string
+        <span class="cov8" title="1">var s string
+        if err := json.Unmarshal(data, &amp;s); err == nil </span><span class="cov8" title="1">{
+                val, err := strconv.ParseBool(strings.ToLower(s))
+                if err != nil </span><span class="cov8" title="1">{
+                        return fmt.Errorf("invalid boolean string: %q", s)
+                }</span>
+                <span class="cov8" title="1">*sb = JsonBool(val)
+                return nil</span>
+        }
+
+        <span class="cov8" title="1">return fmt.Errorf("invalid value for JsonBool: %s", string(data))</span>
+}
+
+func (sb *JsonBool) Bool() bool <span class="cov0" title="0">{
+        return bool(*sb)
+}</span>
+
+type JsonInt64 int64
+
+func (si *JsonInt64) UnmarshalJSON(data []byte) error <span class="cov8" title="1">{
+        // try int64
+        var i int64
+        if err := json.Unmarshal(data, &amp;i); err == nil </span><span class="cov8" title="1">{
+                *si = JsonInt64(i)
+                return nil
+        }</span>
+
+        // try string
+        <span class="cov8" title="1">var s string
+        if err := json.Unmarshal(data, &amp;s); err == nil </span><span class="cov8" title="1">{
+                val, err := strconv.ParseInt(strings.TrimSpace(s), 10, 64)
+                if err != nil </span><span class="cov8" title="1">{
+                        return fmt.Errorf("invalid int64 string: %q", s)
+                }</span>
+                <span class="cov8" title="1">*si = JsonInt64(val)
+                return nil</span>
+        }
+
+        <span class="cov0" title="0">return fmt.Errorf("invalid value for JsonInt64: %s", string(data))</span>
+}
+
+func (si *JsonInt64) Int64() int64 <span class="cov0" title="0">{
+        return int64(*si)
+}</span>
 </pre>
 		
 		<pre class="file" id="file3" style="display: none">package client
