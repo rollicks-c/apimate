@@ -8,6 +8,8 @@ import (
 )
 
 type Option = client.RequestOption
+type JsonBool = client.JsonBool
+type JsonInt64 = client.JsonInt64
 
 func WithAllPages(pageParam, pagesHeader string) client.RequestOption {
 	return func(ctx *client.RequestContext) error {
